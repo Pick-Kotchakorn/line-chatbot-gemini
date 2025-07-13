@@ -17,7 +17,7 @@ const gemini = require('./utils/gemini');
 // ข้อความต้อนรับเมื่อเพิ่มเพื่อน
 const WELCOME_MESSAGE = `สวัสดีครับ! ยินดีต้อนรับสู่ Unagi Yondaime Kikukawa 🍱
 
-ผมทาโร่ครับ พร้อมให้บริการและตอบคำถามเกี่ยวกับ:
+ผมพร้อมให้บริการและตอบคำถามเกี่ยวกับ:
 🍽️ เมนูอาหารและราคา
 📍 ข้อมูลสาขาทั้ง 3 แห่ง
 ⏰ เวลาเปิด-ปิด การจองโต๊ะ
@@ -173,7 +173,7 @@ app.get('/', (req, res) => {
     <div style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
       <h1>🍱 Unagi Yondaime Kikukawa LINE Bot</h1>
       <p>ระบบ AI ช่วยตอบคำถามลูกค้า พร้อมให้บริการ! 🤖</p>
-      <p>Powered by Gemini AI & ทาโร่ 😊</p>
+      <p>Powered by Gemini AI 😊</p>
     </div>
   `);
 });
@@ -186,5 +186,5 @@ app.get('/webhook', (req, res) => {
 app.listen(port, () => {
   console.log(`🚀 Unagi Yondaime Kikukawa Bot Server running on port ${port}`);
   console.log(`📱 Webhook URL: https://your-app-name.onrender.com/webhook`);
-  console.log(`🤖 AI Assistant "ทาโร่" is ready to help customers!`);
+  console.log(`🤖 AI Assistant is ready to help customers!`);
 });

@@ -11,7 +11,7 @@ const cache = new NodeCache({ stdTTL: 600 });
 app.use(express.json());
 
 // Import utility functions
-const { showLoadingAnimation, replyMessage, getFileContent } = require('./utils/request');
+const { showProcessingIndicator, replyMessage, getFileContent } = require('./utils/request');
 const gemini = require('./utils/gemini');
 
 // ข้อความต้อนรับเมื่อเพิ่มเพื่อน
@@ -97,39 +97,50 @@ async function handleEvent(event) {
 async function handleMessage(event) {
   const { replyToken, message, source } = event;
   const userId = source.userId;
-  const chatId = source.type === 'group' ? source.groupId : 
-                 source.type === 'room' ? source.roomId : userId;
 
   try {
     let responseText = '';
-    let needsAI = false; // ตัวแปรเช็คว่าต้องใช้ AI หรือไม่
+    let needsProcessing = false; // ตัวแปรเช็คว่าต้องแสดง indicator หรือไม่
+    const startTime = Date.now();
 
     switch (message.type) {
       case 'text':
         const userText = message.text.trim();
         
-        // ตรวจสอบคำสั่งพิเศษ
+        // ตรวจสอบคำสั่งพิเศษ (ตอบเร็ว ไม่ต้องแสดง indicator)
         const lowerText = userText.toLowerCase();
         if (SPECIAL_COMMANDS[userText] || SPECIAL_COMMANDS[lowerText]) {
           responseText = SPECIAL_COMMANDS[userText] || SPECIAL_COMMANDS[lowerText];
           if (typeof responseText === 'function') {
             responseText = responseText();
           }
+          console.log(`Quick response for command: ${userText}`);
         } else {
-          // ต้องใช้ AI - แสดง Loading
-          needsAI = true;
-          await showLoadingAnimation(chatId);
+          // ต้องใช้ AI - แสดง Typing Indicator
+          needsProcessing = true;
+          console.log(`AI processing needed for: "${userText}"`);
+          
+          // แสดง Typing Indicator
+          const indicator = await showProcessingIndicator(source, false); // false = ใช้ Typing
+          console.log(`Indicator result:`, indicator);
           
           const cachedFile = cache.get(userId);
           responseText = await gemini.generateResponse(userText, cachedFile);
+          
+          const processingTime = Date.now() - startTime;
+          console.log(`AI processing completed in ${processingTime}ms`);
         }
         break;
 
       case 'image':
       case 'video':
       case 'audio':
-        // แสดง Loading เพราะต้องประมวลผลไฟล์
-        await showLoadingAnimation(chatId);
+        // แสดง Typing เพราะต้องประมวลผลไฟล์
+        needsProcessing = true;
+        console.log(`File processing needed for: ${message.type}`);
+        
+        const fileIndicator = await showProcessingIndicator(source, false);
+        console.log(`File indicator result:`, fileIndicator);
         
         try {
           const fileContent = await getFileContent(message.id);
@@ -143,6 +154,9 @@ async function handleMessage(event) {
           console.error('File processing error:', error);
           responseText = 'ขออภัยครับ เกิดปัญหาในการประมวลผลไฟล์ครับ มีคำถามอื่นเกี่ยวกับร้านไหมครับ?';
         }
+        
+        const fileProcessingTime = Date.now() - startTime;
+        console.log(`File processing completed in ${fileProcessingTime}ms`);
         break;
 
       case 'sticker':
@@ -166,6 +180,9 @@ async function handleMessage(event) {
 
     if (responseText) {
       await replyMessage(replyToken, responseText);
+      
+      const totalTime = Date.now() - startTime;
+      console.log(`Total response time: ${totalTime}ms, Processing: ${needsProcessing ? 'Yes' : 'No'}`);
     }
 
   } catch (error) {

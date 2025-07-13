@@ -1,5 +1,6 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const ai = new GoogleGenAI({ apiKey: `${process.env.API_KEY}` });
+
+const genAI = new GoogleGenerativeAI(process.env.API_KEY);
 
 class Gemini {
   isUrl(str) {
@@ -14,22 +15,33 @@ class Gemini {
   isAllowedMimes(mimeType) {
     return [
       "application/pdf",
-      "image/jpeg",
+      "image/jpeg", 
       "image/png",
       "audio/wav",
       "audio/mp3",
-      "audio/x-m4a",
+      "audio/x-m4a", 
       "video/mp4",
       "video/mov",
     ].includes(mimeType);
   }
 
-  async multimodal(promptArray) {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: promptArray,
-    });
-    return response;
+  async generateResponse(prompt, fileContent = null) {
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      let parts = [{ text: prompt }];
+      
+      if (fileContent) {
+        parts.push(fileContent);
+      }
+
+      const result = await model.generateContent(parts);
+      const response = await result.response;
+      return response.text();
+    } catch (error) {
+      console.error('Gemini API error:', error);
+      return 'ขออภัยครับ เกิดข้อผิดพลาดในการประมวลผล';
+    }
   }
 }
 

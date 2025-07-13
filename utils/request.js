@@ -1,44 +1,59 @@
-const axios = require("axios");
-const LINE_HEADER = {
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${process.env.CHANNEL_ACCESS_TOKEN}`
+const axios = require('axios');
+
+const LINE_API_URL = 'https://api.line.me/v2/bot';
+const headers = {
+  'Authorization': `Bearer ${process.env.CHANNEL_ACCESS_TOKEN}`,
+  'Content-Type': 'application/json',
 };
 
-class Request {
-  getBinary(messageId) {
-    return axios({
-      method: "get",
-      headers: LINE_HEADER,
-      url: `https://api-data.line.me/v2/bot/message/${messageId}/content`,
-      responseType: "arraybuffer"
-    });
-  }
+async function replyMessage(replyToken, text) {
+  try {
+    const body = {
+      replyToken: replyToken,
+      messages: [
+        {
+          type: 'text',
+          text: text,
+        },
+      ],
+    };
 
-  reply(replyToken, payload) {
-    return axios({
-      method: "post",
-      url: "https://api.line.me/v2/bot/message/reply",
-      headers: LINE_HEADER,
-      data: { replyToken, messages: payload }
-    });
-  }
-
-  loading(userId) {
-    return axios({
-      method: "post",
-      url: "https://api.line.me/v2/bot/chat/loading/start",
-      headers: LINE_HEADER,
-      data: { chatId: userId }
-    });
-  }
-
-  async curl(url) {
-    try {
-      return axios({ method: "get", url, responseType: "arraybuffer" });
-    } catch (error) {
-      throw error;
-    }
+    await axios.post(`${LINE_API_URL}/message/reply`, body, { headers });
+    console.log('Reply sent successfully');
+  } catch (error) {
+    console.error('Error sending reply:', error.response?.data || error.message);
   }
 }
 
-module.exports = new Request()
+async function getFileContent(messageId) {
+  try {
+    const response = await axios.get(`${LINE_API_URL}/message/${messageId}/content`, {
+      headers,
+      responseType: 'arraybuffer',
+    });
+
+    return {
+      data: response.data,
+      mimeType: response.headers['content-type'],
+    };
+  } catch (error) {
+    console.error('Error getting file content:', error.response?.data || error.message);
+    return null;
+  }
+}
+
+async function getUserProfile(userId) {
+  try {
+    const response = await axios.get(`${LINE_API_URL}/profile/${userId}`, { headers });
+    return response.data;
+  } catch (error) {
+    console.error('Error getting user profile:', error.response?.data || error.message);
+    return null;
+  }
+}
+
+module.exports = {
+  replyMessage,
+  getFileContent,
+  getUserProfile,
+};
